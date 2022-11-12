@@ -1,4 +1,3 @@
-use std::fmt::Display;
 
 use thiserror::Error;
 
@@ -38,7 +37,7 @@ pub struct SemanticComment {
     pub semantic_type: SemanticType,
 }
 
-pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
+pub fn parse_comment(_comment: &str) -> Result<SemanticComment, SemVerError> {
     todo!()
 }
 
@@ -51,7 +50,6 @@ mod test {
         let comment = "feat: this is a feature";
 
         let sem_comment = parse_comment(comment);
-
         
     }
 }

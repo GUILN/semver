@@ -13,12 +13,6 @@ pub enum SemVerError {
     UnexpectedSemanticType(String),
 }
 
-/// Provides type to inform if the [`SemanticType`] was anotated with:
-///
-/// : -> Non breaking. Eg.: `feat:`
-/// ! -> Breaking.     Eg.: `feat!`
-pub type IsBreaking = bool;
-
 /// Provides semantic type assumed from the commit message.
 /// # Possible breaking values
 /// - fix!, feat!, refact!
@@ -98,7 +92,7 @@ pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
         let prefix_delimiter = mat.end();
         
         let left_side = &comment[0..prefix_delimiter];
-        let right_side = &comment[(prefix_delimiter + 1)..comment.len()];
+        let right_side = &comment[(prefix_delimiter)..comment.len()];
 
         let is_breaking = left_side.ends_with('!');
 
@@ -128,7 +122,9 @@ mod test {
             ("feat! feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(SemanticTypeMetadata::new(true)))),
             ("fix: fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(false)))),
             ("fix! fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(true)))),
+            ("fix!fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(true)))),
             ("refact: refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(false)))),
+            ("refact:refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(false)))),
             ("refact! refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(true)))),
         ];
 

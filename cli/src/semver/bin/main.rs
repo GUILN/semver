@@ -1,3 +1,19 @@
+/// ! [`semver`] This cli parses the semantic version commit comment.
+///
+/// It fails if the commit comment is not in valid format else
+/// succeds and returns a json representing the commit semantics.
+/// # Expected comment structure:
+/// - <semantic_type>: this is a <semantic_type>.
+/// - <semantic_type>! this is a <semantic_type>.
+/// 
+/// Where <semantic_type> is [`fix`, `feat`, `refact`] and [`:`, `!`] means [`non_breaking`, `breaking`] respectively.
+///
+/// # Example:
+/// `semver --comment "feat! this is a breaking feature."`
+/// `semver --comment "fix: this is a non breaking fix."`
+/// `semver --comment "refact! this is a breaking refactor."`
+
+
 use core::parse_comment;
 use clap::Parser;
 

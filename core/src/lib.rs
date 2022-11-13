@@ -1,7 +1,8 @@
+use regex::Regex;
 use thiserror::Error;
 
 #[non_exhaustive]
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 /// [SemVerError]
 ///
 /// Provides error that can occur when parsing comment.
@@ -33,19 +34,14 @@ pub enum SemanticType {
 impl PartialEq for SemanticType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Fix(l_isbreaking), Self::Fix(r_isbreaking)) if l_isbreaking == r_isbreaking => {
-                true
+            (Self::Fix(l_isbreaking), Self::Fix(r_isbreaking)) => l_isbreaking == r_isbreaking,
+            (Self::Feature(l_isbreaking), Self::Feature(r_isbreaking)) => {
+                l_isbreaking == r_isbreaking
             }
-            (Self::Feature(l_isbreaking), Self::Feature(r_isbreaking))
-                if l_isbreaking == r_isbreaking =>
-            {
-                true
+            (Self::Refactoring(l_isbreaking), Self::Refactoring(r_isbreaking)) => {
+                l_isbreaking == r_isbreaking
             }
-            (Self::Refactoring(l_isbreaking), Self::Refactoring(r_isbreaking))
-                if l_isbreaking == r_isbreaking =>
-            {
-                true
-            }
+
             _ => false,
         }
     }
@@ -66,24 +62,50 @@ impl SemanticComment {
     }
 }
 
+impl PartialEq for SemanticComment {
+    fn eq(&self, other: &Self) -> bool {
+        self.comment == other.comment && self.semantic_type == other.semantic_type
+    }
+}
+
+/// Parses a comment and returns a [`Result<SemanticComment, SemVerError>`]
+/// # Expected format:
+/// - <semantic_type>: this is a <semantic_type>.
+/// - <semantic_type>! this is a <semantic_type>.
+/// 
+/// Where <semantic_type> is [`fix`, `feat`, `refact`] and [`:`, `!`] means [`non_breaking`, `breaking`] respectively.
+/// 
+/// Example
+/// ```
+/// # use core::*;
+/// let your_git_comment = "feat! breaking change feature.";
+/// let parsed_comment = parse_comment(your_git_comment).unwrap();
+/// assert_eq!(parsed_comment,SemanticComment::new("breaking change feature.".to_string(), SemanticType::Feature(true)));
+/// ```
 pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
-    let non_breaking_split_number = comment.find(':');
-    let breaking_split_number = comment.find('!');
+    let re = Regex::new(r"^[a-zA-Z0-9_]+(:|!)").unwrap();
 
-    let split_result = match (non_breaking_split_number, breaking_split_number) {
-        (None, Some(n)) => Some((n, true)),
-        (Some(n), None) => Some((n, false)),
-        _ => None,
-    }.ok_or(SemVerError::InvalidFormat)?;
+    if let Some(mat) = re.find(comment) {
+        let prefix_delimiter = mat.end();
+        
+        let left_side = &comment[0..prefix_delimiter];
+        let right_side = &comment[(prefix_delimiter + 1)..comment.len()];
 
-   
-    let left_side = &comment[0..split_result.0];
-    let right_side = &comment[(split_result.0 + 1)..comment.len()];
+        let is_breaking = left_side.ends_with('!');
 
-    match left_side {
-        "feat" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Feature((split_result.1)))),
-        _ => Err(SemVerError::UnexpectedSemanticType(left_side.to_string()))
-    } 
+        let prefix = &left_side[0..left_side.len() -1];
+
+        match prefix.trim() {
+            "feat" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Feature(is_breaking))),
+            "fix" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Fix(is_breaking))),
+            "refact" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Refactoring(is_breaking))),
+            _ => Err(SemVerError::UnexpectedSemanticType(prefix.to_string()))
+        }
+        
+    } else {
+        Err(SemVerError::InvalidFormat)
+    }
+
 }
 
 //#[cfg(test)]
@@ -92,10 +114,34 @@ mod test {
 
     #[test]
     fn test_parse_comment_retrieves_expected_semantic_type_from_comment_string() {
-        let comment = "feat: this is a feature";
+        let cases = vec![
+            ("feat: feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(false))),
+            ("feat! feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(true))),
+            ("fix: fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(false))),
+            ("fix! fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(true))),
+            ("refact: refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(false))),
+            ("refact! refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(true))),
+        ];
 
-        let sem_comment = parse_comment(comment).unwrap();
-        assert_eq!(sem_comment.comment, "this is a feature");
-        assert_eq!(sem_comment.semantic_type, SemanticType::Feature(false))
+        for (comment, expected_sem_com) in cases {
+            let sem_comment = parse_comment(comment).unwrap();
+
+            assert_eq!(sem_comment, expected_sem_com);
+        }
+    }
+
+    #[test]
+    fn test_parse_comment_returns_expected_error_when_format_is_invalid() {
+        let comment_with_invalid_format = "this is a comment with invalid format".to_string();
+
+        let sem_ver_error = parse_comment(&comment_with_invalid_format).unwrap_err();
+        assert_eq!(sem_ver_error, SemVerError::InvalidFormat)
+    }
+    #[test]
+    fn test_parse_comment_returns_expected_error_when_semantic_type_is_not_supported() {
+        let comment_with_unsupported_semantic_type = "wop! some work around.".to_string();
+
+        let sem_ver_error = parse_comment(&comment_with_unsupported_semantic_type).unwrap_err();
+        assert_eq!(sem_ver_error, SemVerError::UnexpectedSemanticType("wop".to_string()))
     }
 }

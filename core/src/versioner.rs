@@ -1,4 +1,4 @@
-use crate::SemanticComment;
+use crate::{SemanticComment, SemanticVersion, SemVerError};
 
 /// [`calculate_version`] calculates the next semantic version given the semantic comment.
 /// Expected semantic version format
@@ -10,19 +10,31 @@ use crate::SemanticComment;
 /// - for breaking changes: `feat`, `refact` and `fix` changes `<major>`.
 /// - Every time most significant number in version increments, the numbers below will zero.
 /// ### Rules - Example 
-/// Given the current version: `v.1.2.3`
+/// Given the current version: `v1.2.3`
 /// #### If `incomming_commit_comment` is non breaking, for a:
-/// - fix:      `v.1.2.4` 
-/// - refact:   `v.1.2.4` 
-/// - feat:     `v.1.3.0` 
+/// - fix:      `v1.2.4` 
+/// - refact:   `v1.2.4` 
+/// - feat:     `v1.3.0` 
 /// #### If `incomming_commit_comment` is a breaking comment, for a:
-/// - fix:      `v.2.0.0` 
-/// - refact:   `v.2.0.0` 
-/// - feat:     `v.2.0.0`
+/// - fix:      `v2.0.0` 
+/// - refact:   `v2.0.0` 
+/// - feat:     `v2.0.0`
 ///  
-pub fn calculate_version(current_version: &str, incomming_commit_comment: SemanticComment) -> String {
+pub fn calculate_version(current_version: &str, incomming_commit_comment: SemanticComment) -> Result<String, SemVerError> {
+    let mut semantic_version: SemanticVersion = current_version.try_into()?;
 
-    todo!()
+    match incomming_commit_comment.semantic_type {
+        crate::SemanticType::Fix(meta) if !meta.is_breaking => semantic_version.patch += 1,
+        crate::SemanticType::Refactoring(meta) if !meta.is_breaking => semantic_version.patch += 1,
+        crate::SemanticType::Feature(meta) if !meta.is_breaking => semantic_version.minor += 1,
+        _ => {
+            semantic_version.major += 1;
+            semantic_version.minor = 0;
+            semantic_version.patch = 0;
+        }
+    }
+
+    Ok(semantic_version.into())
 }
 
 mod test {
@@ -36,8 +48,8 @@ mod test {
 
 
         let semantic_comment = parse_comment(comment).unwrap();
-        let new_version = calculate_version(current_version, semantic_comment);
+        let new_version = calculate_version(current_version, semantic_comment).unwrap();
 
-        assert_eq!(new_version, expected_version.to_string())
+        assert_eq!(new_version, expected_version)
     }
 }

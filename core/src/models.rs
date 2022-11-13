@@ -47,7 +47,7 @@ pub enum SemanticType {
 /// Holds metadata about the semantic type.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SemanticTypeMetadata {
-    is_breaking: bool,
+    pub is_breaking: bool,
 }
 
 impl SemanticTypeMetadata {
@@ -118,23 +118,23 @@ impl Default for SemanticVersion {
 /// # Example
 /// ```
 /// # use core::*;
-/// assert_eq!(SemanticVersion::try_from("v.1.2.3").unwrap(), SemanticVersion{ major: 1, minor: 2, patch: 3 });
-/// assert_eq!(SemanticVersion::try_from("v.40.2.8").unwrap(), SemanticVersion{ major: 40, minor: 2, patch: 8 });
-/// assert_eq!(SemanticVersion::try_from("v.1.300.3").unwrap(), SemanticVersion{ major: 1, minor: 300, patch: 3 });
+/// assert_eq!(SemanticVersion::try_from("v1.2.3").unwrap(), SemanticVersion{ major: 1, minor: 2, patch: 3 });
+/// assert_eq!(SemanticVersion::try_from("v40.2.8").unwrap(), SemanticVersion{ major: 40, minor: 2, patch: 8 });
+/// assert_eq!(SemanticVersion::try_from("v1.300.3").unwrap(), SemanticVersion{ major: 1, minor: 300, patch: 3 });
 /// 
 /// assert_eq!(SemanticVersion::try_from("version-1").unwrap_err(), SemVerError::InvalidVersionFormat("version-1".to_string()));
-/// assert_eq!(SemanticVersion::try_from("v34.34.2").unwrap_err(), SemVerError::InvalidVersionFormat("v34.34.2".to_string()));
+/// assert_eq!(SemanticVersion::try_from("v.34.34.2").unwrap_err(), SemVerError::InvalidVersionFormat("v.34.34.2".to_string()));
 /// ```
 impl TryFrom<&str> for SemanticVersion {
     type Error = SemVerError;
 
     fn try_from(version_str: &str) -> Result<Self, Self::Error> {
-        let re = Regex::new(r"v(\.[0-9]+){3}").unwrap();
+        let re = Regex::new(r"v[0-9]+(\.{1}[0-9]+){2}").unwrap();
         if !re.is_match(version_str) {
             return Err(SemVerError::InvalidVersionFormat(version_str.to_string()));
         }
 
-        let version_numbers = &version_str[2..version_str.len()];
+        let version_numbers = &version_str[1..version_str.len()];
         let version_numbers_vector: Vec<&str> = version_numbers.split(".").collect();
 
         Ok(SemanticVersion{
@@ -145,12 +145,25 @@ impl TryFrom<&str> for SemanticVersion {
     }
 }
 
+/// Returns the version in following format: `v.<major>.<minor>.<patch>`
+/// # Example:
+/// ```
+/// # use core::*;
+/// assert_eq!(String::from(SemanticVersion{ major: 1, minor: 2, patch: 3 }), "v1.2.3");
+/// assert_eq!(String::from(SemanticVersion{ major: 23, minor: 0, patch: 2 }), "v23.0.2");
+/// ```
+impl From<SemanticVersion> for String {
+    fn from(sem_ver: SemanticVersion) -> Self {
+        format!("v{}.{}.{}", sem_ver.major, sem_ver.minor, sem_ver.patch)
+    }
+}
+
 mod test {
     use super::*;
 
     #[test]
     fn semantic_version_try_from_creates_right_semantic_version_from_version_string() {
-        let semantic_version = SemanticVersion::try_from("v.1.2.3").unwrap();
+        let semantic_version = SemanticVersion::try_from("v1.2.3").unwrap();
         assert_eq!(semantic_version, SemanticVersion{ major: 1, minor: 2, patch: 3 });
     }
 }

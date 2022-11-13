@@ -7,7 +7,6 @@ struct Args {
     version: String,
 }
 
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 

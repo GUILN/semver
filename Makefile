@@ -8,6 +8,6 @@ test:
 doc:
 	$(CD)
 
-release:
+release: test
 	$(CR)
 

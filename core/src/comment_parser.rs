@@ -47,7 +47,7 @@ pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
             _ => Err(SemVerError::UnexpectedSemanticType(prefix.to_string())),
         }
     } else {
-        Err(SemVerError::InvalidFormat)
+        Err(SemVerError::InvalidCommentFormat)
     }
 }
 
@@ -130,7 +130,7 @@ mod test {
         let comment_with_invalid_format = "this is a comment with invalid format".to_string();
 
         let sem_ver_error = parse_comment(&comment_with_invalid_format).unwrap_err();
-        assert_eq!(sem_ver_error, SemVerError::InvalidFormat)
+        assert_eq!(sem_ver_error, SemVerError::InvalidCommentFormat)
     }
     #[test]
     fn test_parse_comment_returns_expected_error_when_semantic_type_is_not_supported() {

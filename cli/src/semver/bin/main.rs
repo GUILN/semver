@@ -12,6 +12,7 @@
 /// `semver --comment "feat! this is a breaking feature."`
 /// `semver --comment "fix: this is a non breaking fix."`
 /// `semver --comment "refact! this is a breaking refactor."`
+ 
 
 
 use core::parse_comment;
@@ -30,6 +31,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let semantic_comment = parse_comment(args.comment.as_str())?;
 
-    println!("{:?}", semantic_comment);
+    println!("{:?}", semantic_comment.as_json_string()?);
     Ok(())
 }

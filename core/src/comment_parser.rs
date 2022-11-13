@@ -1,4 +1,5 @@
 use regex::Regex;
+use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
 #[non_exhaustive]
@@ -11,6 +12,14 @@ pub enum SemVerError {
     InvalidFormat,
     #[error("Unexpected semantic type")]
     UnexpectedSemanticType(String),
+    #[error("error while deserializing")]
+    DeserializationError,
+}
+
+impl From<serde_json::Error> for SemVerError {
+    fn from(_: serde_json::Error) -> Self {
+        Self::DeserializationError
+    }
 }
 
 /// Provides semantic type assumed from the commit message.
@@ -18,14 +27,14 @@ pub enum SemVerError {
 /// - fix!, feat!, refact!
 /// # Possible non breaking values
 /// - fix:, feat:, refact:
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum SemanticType {
     Fix(SemanticTypeMetadata),
     Feature(SemanticTypeMetadata),
     Refactoring(SemanticTypeMetadata),
 }
 /// Holds metadata about the semantic type.
-# [derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SemanticTypeMetadata {
     is_breaking: bool,
 }
@@ -50,7 +59,7 @@ impl PartialEq for SemanticType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SemanticComment {
     pub comment: String,
     pub semantic_type: SemanticType,
@@ -62,6 +71,11 @@ impl SemanticComment {
             comment,
             semantic_type,
         }
+    }
+
+    /// [`as_json_string`] returns json representation of the structure.
+    pub fn as_json_string(&self) -> Result<String, SemVerError> {
+        Ok(serde_json::to_string(&self)?)
     }
 }
 

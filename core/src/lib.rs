@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use regex::Regex;
 use thiserror::Error;
 
@@ -17,7 +19,7 @@ pub enum SemVerError {
 ///
 /// : -> Non breaking. Eg.: `feat:`
 /// ! -> Breaking.     Eg.: `feat!`
-type IsBreaking = bool;
+pub type IsBreaking = bool;
 
 /// Provides semantic type assumed from the commit message.
 /// # Possible breaking values
@@ -26,20 +28,29 @@ type IsBreaking = bool;
 /// - fix:, feat:, refact:
 #[derive(Debug)]
 pub enum SemanticType {
-    Fix(IsBreaking),
-    Feature(IsBreaking),
-    Refactoring(IsBreaking),
+    Fix(SemanticTypeMetadata),
+    Feature(SemanticTypeMetadata),
+    Refactoring(SemanticTypeMetadata),
+}
+/// Holds metadata about the semantic type.
+# [derive(Debug)]
+pub struct SemanticTypeMetadata {
+    is_breaking: bool,
+}
+
+impl SemanticTypeMetadata {
+    pub fn new(is_breaking: bool) -> Self { Self { is_breaking } }
 }
 
 impl PartialEq for SemanticType {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Fix(l_isbreaking), Self::Fix(r_isbreaking)) => l_isbreaking == r_isbreaking,
-            (Self::Feature(l_isbreaking), Self::Feature(r_isbreaking)) => {
-                l_isbreaking == r_isbreaking
+            (Self::Fix(l_meta), Self::Fix(r_meta)) => l_meta.is_breaking == r_meta.is_breaking,
+            (Self::Feature(l_meta), Self::Feature(r_meta)) => {
+                l_meta.is_breaking == r_meta.is_breaking
             }
-            (Self::Refactoring(l_isbreaking), Self::Refactoring(r_isbreaking)) => {
-                l_isbreaking == r_isbreaking
+            (Self::Refactoring(l_meta), Self::Refactoring(r_meta)) => {
+                l_meta.is_breaking == r_meta.is_breaking
             }
 
             _ => false,
@@ -96,9 +107,9 @@ pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
         let prefix = &left_side[0..left_side.len() -1];
 
         match prefix.trim() {
-            "feat" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Feature(is_breaking))),
-            "fix" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Fix(is_breaking))),
-            "refact" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Refactoring(is_breaking))),
+            "feat" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Feature(SemanticTypeMetadata::new(is_breaking)))),
+            "fix" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Fix(SemanticTypeMetadata::new(is_breaking)))),
+            "refact" => Ok(SemanticComment::new(right_side.trim().to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(is_breaking)))),
             _ => Err(SemVerError::UnexpectedSemanticType(prefix.to_string()))
         }
         
@@ -108,19 +119,19 @@ pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
 
 }
 
-//#[cfg(test)]
+#[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn test_parse_comment_retrieves_expected_semantic_type_from_comment_string() {
         let cases = vec![
-            ("feat: feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(false))),
-            ("feat! feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(true))),
-            ("fix: fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(false))),
-            ("fix! fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(true))),
-            ("refact: refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(false))),
-            ("refact! refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(true))),
+            ("feat: feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(SemanticTypeMetadata::new(false)))),
+            ("feat! feature here",SemanticComment::new("feature here".to_string(), SemanticType::Feature(SemanticTypeMetadata::new(true)))),
+            ("fix: fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(false)))),
+            ("fix! fix here",SemanticComment::new("fix here".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(true)))),
+            ("refact: refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(false)))),
+            ("refact! refactoring here",SemanticComment::new("refactoring here".to_string(), SemanticType::Refactoring(SemanticTypeMetadata::new(true)))),
         ];
 
         for (comment, expected_sem_com) in cases {

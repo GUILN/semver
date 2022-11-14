@@ -18,7 +18,7 @@ pub enum SemVerError {
     #[error("invalid version format")]
     InvalidVersionFormat(String),
     #[error("error when converting version numbers")]
-    ErrorWhenConveringVersionNumber,
+    ErrorWhenConvertingVersionNumber,
 }
 
 impl From<serde_json::Error> for SemVerError {
@@ -29,7 +29,7 @@ impl From<serde_json::Error> for SemVerError {
 
 impl From<ParseIntError> for SemVerError {
     fn from(_: ParseIntError) -> Self {
-        Self::ErrorWhenConveringVersionNumber
+        Self::ErrorWhenConvertingVersionNumber
     }
 }
 
@@ -149,7 +149,7 @@ impl TryFrom<&str> for SemanticVersion {
     }
 }
 
-/// Returns the version in following format: `v.<major>.<minor>.<patch>`
+/// Returns the version in following format: `v<major>.<minor>.<patch>`
 /// # Example:
 /// ```
 /// # use core::*;

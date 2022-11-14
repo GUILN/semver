@@ -9,7 +9,7 @@ use std::{convert::TryFrom, num::ParseIntError};
 ///
 /// Provides error that can occur when parsing comment.
 pub enum SemVerError {
-    #[error("The format provided is invalid!")]
+    #[error("The format provided is invalid! \nPlease follow the format:\n<fix | refact | feat>: this is non breaking change\n<fix | refact | feat>! this is a breaking change")]
     InvalidCommentFormat,
     #[error("Unexpected semantic type")]
     UnexpectedSemanticType(String),
@@ -158,6 +158,7 @@ impl From<SemanticVersion> for String {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 

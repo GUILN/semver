@@ -23,7 +23,11 @@ use crate::{SemanticComment, SemanticVersion, SemVerError};
 /// ```
 /// use core::*;
 ///
-/// //assert_eq!(calculate_version()); 
+/// assert_eq!(calculate_version("v2.3.5", "fix: this is a fix.".try_into().unwrap()).unwrap(), "v2.3.6");
+/// assert_eq!(calculate_version("v2.3.5", "feat: this is a new feature.".try_into().unwrap()).unwrap(), "v2.4.0");
+/// assert_eq!(calculate_version("v30.3.5", "fix! this is a breaking fix.".try_into().unwrap()).unwrap(), "v31.0.0");
+/// assert_eq!(calculate_version("v2.3.5", "feat! this is a breaking feature.".try_into().unwrap()).unwrap(), "v3.0.0");
+/// assert_eq!(calculate_version("v2.3.5", "refact: this is a refactor.".try_into().unwrap()).unwrap(), "v2.3.6");
 /// ``` 
 pub fn calculate_version(current_version: &str, incomming_commit_comment: SemanticComment) -> Result<String, SemVerError> {
     let mut semantic_version: SemanticVersion = current_version.try_into()?;
@@ -31,7 +35,10 @@ pub fn calculate_version(current_version: &str, incomming_commit_comment: Semant
     match incomming_commit_comment.semantic_type {
         crate::SemanticType::Fix(meta) if !meta.is_breaking => semantic_version.patch += 1,
         crate::SemanticType::Refactoring(meta) if !meta.is_breaking => semantic_version.patch += 1,
-        crate::SemanticType::Feature(meta) if !meta.is_breaking => semantic_version.minor += 1,
+        crate::SemanticType::Feature(meta) if !meta.is_breaking => {
+            semantic_version.minor += 1;
+            semantic_version.patch = 0;
+        } ,
         _ => {
             semantic_version.major += 1;
             semantic_version.minor = 0;
@@ -42,10 +49,10 @@ pub fn calculate_version(current_version: &str, incomming_commit_comment: Semant
     Ok(semantic_version.into())
 }
 
+#[cfg(test)]
 mod test {
-    use crate::SemanticVersion;
+    use crate::*;
 
-    use super::*;
 
     #[test]
     fn test_calculate_version_calculates_new_version_according_to_expected() {
@@ -55,6 +62,7 @@ mod test {
         let semantic_comment = comment.try_into().unwrap();
         let new_version = calculate_version(current_version, semantic_comment).unwrap();
 
-        assert_eq!(new_version, expected_version)
+        assert_eq!(new_version, expected_version);
+        assert_eq!(calculate_version("v2.3.5", "fix: this is a fix.".try_into().unwrap()).unwrap(), "v2.3.6")
     }
 }

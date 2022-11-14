@@ -19,7 +19,12 @@ use crate::{SemanticComment, SemanticVersion, SemVerError};
 /// - fix:      `v2.0.0` 
 /// - refact:   `v2.0.0` 
 /// - feat:     `v2.0.0`
-///  
+/// # Example
+/// ```
+/// use core::*;
+///
+/// //assert_eq!(calculate_version()); 
+/// ``` 
 pub fn calculate_version(current_version: &str, incomming_commit_comment: SemanticComment) -> Result<String, SemVerError> {
     let mut semantic_version: SemanticVersion = current_version.try_into()?;
 
@@ -38,7 +43,7 @@ pub fn calculate_version(current_version: &str, incomming_commit_comment: Semant
 }
 
 mod test {
-    use crate::parse_comment;
+    use crate::SemanticVersion;
 
     use super::*;
 
@@ -47,7 +52,7 @@ mod test {
         let (comment, current_version, expected_version) = ("fix: this is a fix", "v2.3.5", "v2.3.6");
 
 
-        let semantic_comment = parse_comment(comment).unwrap();
+        let semantic_comment = comment.try_into().unwrap();
         let new_version = calculate_version(current_version, semantic_comment).unwrap();
 
         assert_eq!(new_version, expected_version)

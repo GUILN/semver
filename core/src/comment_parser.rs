@@ -14,11 +14,16 @@ use crate::{SemVerError, SemanticComment, SemanticType, SemanticTypeMetadata};
 /// Example
 /// ```
 /// # use core::*;
-/// let your_git_comment = "feat! breaking change feature.";
-/// let parsed_comment = parse_comment(your_git_comment).unwrap();
+/// let parsed_comment: SemanticComment = "feat! breaking change feature.".try_into().unwrap();
 /// assert_eq!(parsed_comment,SemanticComment::new("breaking change feature.".to_string(), SemanticType::Feature(SemanticTypeMetadata::new(true))));
+/// 
+/// let parsed_comment = SemanticComment::try_from("fix: some fix.").unwrap();
+/// assert_eq!(parsed_comment,SemanticComment::new("some fix.".to_string(), SemanticType::Fix(SemanticTypeMetadata::new(false))));
 /// ```
-pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
+impl TryFrom<&str> for SemanticComment {
+    type Error = SemVerError;
+
+    fn try_from(comment: &str) -> Result<Self, Self::Error> {
     let re = Regex::new(r"^[a-zA-Z0-9_]+(:|!)").unwrap();
 
     if let Some(mat) = re.find(comment) {
@@ -48,6 +53,8 @@ pub fn parse_comment(comment: &str) -> Result<SemanticComment, SemVerError> {
         }
     } else {
         Err(SemVerError::InvalidCommentFormat)
+    }
+
     }
 }
 
@@ -119,7 +126,7 @@ mod test {
         ];
 
         for (comment, expected_sem_com) in cases {
-            let sem_comment = parse_comment(comment).unwrap();
+            let sem_comment = SemanticComment::try_from(comment).unwrap();
 
             assert_eq!(sem_comment, expected_sem_com);
         }
@@ -127,16 +134,14 @@ mod test {
 
     #[test]
     fn test_parse_comment_returns_expected_error_when_format_is_invalid() {
-        let comment_with_invalid_format = "this is a comment with invalid format".to_string();
 
-        let sem_ver_error = parse_comment(&comment_with_invalid_format).unwrap_err();
+        let sem_ver_error = SemanticComment::try_from("this is a comment with invalid format").unwrap_err();
         assert_eq!(sem_ver_error, SemVerError::InvalidCommentFormat)
     }
     #[test]
     fn test_parse_comment_returns_expected_error_when_semantic_type_is_not_supported() {
-        let comment_with_unsupported_semantic_type = "wop! some work around.".to_string();
 
-        let sem_ver_error = parse_comment(&comment_with_unsupported_semantic_type).unwrap_err();
+        let sem_ver_error = SemanticComment::try_from("wop! some work around.").unwrap_err();
         assert_eq!(
             sem_ver_error,
             SemVerError::UnexpectedSemanticType("wop".to_string())

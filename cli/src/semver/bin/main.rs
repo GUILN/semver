@@ -1,3 +1,5 @@
+use core::SemanticComment;
+
 use clap::Parser;
 /// ! [`semver`] This cli parses the semantic version commit comment.
 ///
@@ -13,7 +15,6 @@ use clap::Parser;
 /// `semver --comment "feat! this is a breaking feature."`
 /// `semver --comment "fix: this is a non breaking fix."`
 /// `semver --comment "refact! this is a breaking refactor."`
-use core::parse_comment;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -29,7 +30,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let semantic_comment = parse_comment(args.comment.as_str())?;
+    let semantic_comment = SemanticComment::try_from(args.comment.as_str())?;
 
     if args.output_json {
         println!("{}", semantic_comment.as_json_string()?);

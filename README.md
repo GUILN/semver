@@ -1,5 +1,9 @@
 # Semantic Version tools
 
+Provides tools to determine new versions based on `semantic version` comments.
+
+Refer to docs for more information, run `make doc`.
+
 ### To compile
 
 Run: 
